@@ -1,0 +1,18 @@
+version: '3.5'
+services:
+  redis-source:
+    image: redis:3.2.10-alpine
+    ports:
+      - "63791:6379"
+  redis-dest:
+    image: redis:3.2.10-alpine
+    ports:
+      - "63792:6379"
+
+  cli-source:
+    image: redis:3.2.10-alpine
+    command: "redis-cli -h redis-source -p 6379"
+
+  cli-dest:
+    image: redis:3.2.10-alpine
+    command: "redis-cli -h redis-dest -p 6379"
