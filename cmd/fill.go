@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/mediocregopher/radix/v3"
+	"log"
 	"math/rand"
 	"strconv"
 	"time"
@@ -24,16 +25,14 @@ var fillCmd = &cobra.Command{
 
 		randomMap, err := createRandomMap(prefix, count)
 		if err != nil {
-			fmt.Println(err)
-			return
+			log.Fatal(err)
 		}
 
 		fmt.Println("Random map: ", randomMap)
 
 		pool, err := radix.NewPool("tcp", args[0], 10)
 		if err != nil {
-			fmt.Println(err)
-			return
+			log.Fatal(err)
 		}
 
 		rand.Seed(time.Now().UTC().UnixNano())

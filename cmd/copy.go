@@ -9,32 +9,40 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// copyCmd represents the copy command
+var pattern string
+var scanCount, report, limit int
+
 var copyCmd = &cobra.Command{
-	Use:   "copy",
+	Use:   "copy [sourceHost:port] [targetHost:port]",
 	Short: "Copy keys from source redis instance to destination by given pattern",
 	Long:  ``,
+	Args:  cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		start := time.Now()
 
 		fmt.Println("Start copying")
 
-		clientSource, err := radix.DefaultClientFunc("tcp", "localhost:63791")
+		clientSource, err := radix.DefaultClientFunc("tcp", args[0])
 
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		clientTarget, err := radix.DefaultClientFunc("tcp", "localhost:63792")
+		clientTarget, err := radix.DefaultClientFunc("tcp", args[1])
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		scanner := radix.NewScanner(clientSource, radix.ScanOpts{
+		scanOpts := radix.ScanOpts{
 			Command: "SCAN",
-			Pattern: "hello:*",
-			Count:   100,
-		})
+			Count:   scanCount,
+		}
+
+		if pattern != "*" {
+			scanOpts.Pattern = pattern
+		}
+
+		scanner := radix.NewScanner(clientSource, scanOpts)
 
 		var key string
 		counter := 0
@@ -62,13 +70,19 @@ var copyCmd = &cobra.Command{
 			if err != nil {
 				log.Fatal(err)
 			}
+
 			counter++
 			cycle++
 
-			if cycle == 1000 {
-				log.Printf("Copied another 1000 in: %s", time.Since(cycleStart))
+			if cycle == report {
+				log.Printf("Copied another %d keys in: %s", report, time.Since(cycleStart))
 				cycle = 0
 				cycleStart = time.Now()
+			}
+
+			if limit > 0 && counter > limit {
+				fmt.Printf("Early exit after %d keys copied\n", counter)
+				return
 			}
 		}
 
@@ -83,13 +97,8 @@ var copyCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(copyCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// copyCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// copyCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	copyCmd.Flags().StringVar(&pattern, "pattern", "*", "Match pattern for keys")
+	copyCmd.Flags().IntVar(&scanCount, "scanCount", 100, "COUNT parameter for redis SCAN command")
+	copyCmd.Flags().IntVar(&report, "report", 1000, "After what number of keys copied to report time")
+	copyCmd.Flags().IntVar(&limit, "limit", 0, "After what number of keys copied to stop (0 - unlimited)")
 }
