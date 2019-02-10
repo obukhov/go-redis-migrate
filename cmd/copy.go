@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"github.com/mediocregopher/radix/v3"
 	"github.com/obukhov/go-redis-migrate/src/pusher"
+	"github.com/obukhov/go-redis-migrate/src/reporter"
 	"github.com/obukhov/go-redis-migrate/src/scanner"
 	"github.com/spf13/cobra"
 	"log"
 	"sync"
+	"time"
 )
 
 var pattern string
-var scanCount, report, limit int
+var scanCount, report, exportRoutines, pushRoutines int
 
 type keyDump struct {
 	key   string
@@ -25,8 +27,8 @@ var copyCmd = &cobra.Command{
 	Long:  ``,
 	Args:  cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-
 		fmt.Println("Start copying")
+		log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
 		clientSource, err := radix.DefaultClientFunc("tcp", args[0])
 		if err != nil {
@@ -38,20 +40,29 @@ var copyCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		redisScanner := scanner.CreateScanner(clientSource, scanner.RedisScannerOpts{
-			Pattern:          pattern,
-			ScanCount:        100,
-			PullRoutineCount: 10,
-		})
+		statusReporter := reporter.NewReporter()
 
-		redisPusher := pusher.NewRedisPusher(clientTarget, redisScanner.GetDumpChannel())
+		redisScanner := scanner.CreateScanner(
+			clientSource,
+			scanner.RedisScannerOpts{
+				Pattern:          pattern,
+				ScanCount:        scanCount,
+				PullRoutineCount: exportRoutines,
+			},
+			statusReporter,
+		)
+
+		redisPusher := pusher.NewRedisPusher(clientTarget, redisScanner.GetDumpChannel(), statusReporter)
 
 		waitingGroup := new(sync.WaitGroup)
 
-		redisPusher.Start(waitingGroup, 10)
+		statusReporter.Start(time.Second * time.Duration(report))
+		redisPusher.Start(waitingGroup, pushRoutines)
 		redisScanner.Start(waitingGroup)
 
 		waitingGroup.Wait()
+		statusReporter.Stop()
+		statusReporter.Report()
 
 		fmt.Println("Finish copying")
 	},
@@ -62,6 +73,7 @@ func init() {
 
 	copyCmd.Flags().StringVar(&pattern, "pattern", "*", "Match pattern for keys")
 	copyCmd.Flags().IntVar(&scanCount, "scanCount", 100, "COUNT parameter for redis SCAN command")
-	copyCmd.Flags().IntVar(&report, "report", 1000, "After what number of keys copied to report time")
-	copyCmd.Flags().IntVar(&limit, "limit", 0, "After what number of keys copied to stop (0 - unlimited)")
+	copyCmd.Flags().IntVar(&report, "report", 1, "Report current status every N seconds")
+	copyCmd.Flags().IntVar(&exportRoutines, "exportRoutines", 30, "Number of parallel export goroutines")
+	copyCmd.Flags().IntVar(&pushRoutines, "pushRoutines", 30, "Number of parallel push goroutines")
 }

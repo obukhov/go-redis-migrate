@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"github.com/mediocregopher/radix/v3"
+	"github.com/obukhov/go-redis-migrate/src/reporter"
 	"log"
 	"sync"
 )
@@ -21,61 +22,64 @@ type RedisScannerOpts struct {
 type redisScanner struct {
 	client      radix.Client
 	options     RedisScannerOpts
+	reporter    *reporter.Reporter
 	keyChannel  chan string
 	dumpChannel chan KeyDump
 }
 
-func CreateScanner(client radix.Client, options RedisScannerOpts) *redisScanner {
+func CreateScanner(client radix.Client, options RedisScannerOpts, reporter *reporter.Reporter) *redisScanner {
 	return &redisScanner{
 		client:      client,
 		options:     options,
+		reporter:    reporter,
 		dumpChannel: make(chan KeyDump),
 		keyChannel:  make(chan string),
 	}
 }
 
-func (r *redisScanner) Start(wg *sync.WaitGroup) {
+func (s *redisScanner) Start(wg *sync.WaitGroup) {
 	wg.Add(1)
 
 	wgPull := new(sync.WaitGroup)
-	wgPull.Add(r.options.PullRoutineCount)
+	wgPull.Add(s.options.PullRoutineCount)
 
-	go r.scanRoutine(wg)
-	for i := 0; i < r.options.PullRoutineCount; i++ {
-		go r.pullRoutine(wgPull)
+	go s.scanRoutine(wg)
+	for i := 0; i < s.options.PullRoutineCount; i++ {
+		go s.exportRoutine(wgPull)
 	}
 
 	wgPull.Wait()
-	close(r.dumpChannel)
+	close(s.dumpChannel)
 }
 
-func (r *redisScanner) GetDumpChannel() chan KeyDump {
-	return r.dumpChannel
+func (s *redisScanner) GetDumpChannel() chan KeyDump {
+	return s.dumpChannel
 }
 
-func (r *redisScanner) scanRoutine(wg *sync.WaitGroup) {
+func (s *redisScanner) scanRoutine(wg *sync.WaitGroup) {
 	var key string
 	scanOpts := radix.ScanOpts{
 		Command: "SCAN",
-		Count:   r.options.ScanCount,
+		Count:   s.options.ScanCount,
 	}
 
-	if r.options.Pattern != "*" {
-		scanOpts.Pattern = r.options.Pattern
+	if s.options.Pattern != "*" {
+		scanOpts.Pattern = s.options.Pattern
 	}
 
-	radixScanner := radix.NewScanner(r.client, scanOpts)
+	radixScanner := radix.NewScanner(s.client, scanOpts)
 	for radixScanner.Next(&key) {
-		r.keyChannel <- key
+		s.reporter.AddScannedCounter(1)
+		s.keyChannel <- key
 	}
 
-	close(r.keyChannel)
+	close(s.keyChannel)
 	wg.Done()
 }
 
-func (r *redisScanner) pullRoutine(wg *sync.WaitGroup) {
+func (s *redisScanner) exportRoutine(wg *sync.WaitGroup) {
 	for {
-		key, more := <-r.keyChannel
+		key, more := <-s.keyChannel
 
 		if more {
 			var value string
@@ -86,7 +90,7 @@ func (r *redisScanner) pullRoutine(wg *sync.WaitGroup) {
 				radix.Cmd(&value, "DUMP", key),
 			)
 
-			if err := r.client.Do(p); err != nil {
+			if err := s.client.Do(p); err != nil {
 				log.Fatal(err)
 			}
 
@@ -94,7 +98,8 @@ func (r *redisScanner) pullRoutine(wg *sync.WaitGroup) {
 				ttl = 0
 			}
 
-			r.dumpChannel <- KeyDump{
+			s.reporter.AddExportedCounter(1)
+			s.dumpChannel <- KeyDump{
 				Key:   key,
 				Ttl:   ttl,
 				Value: value,
