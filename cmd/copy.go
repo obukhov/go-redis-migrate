@@ -28,7 +28,6 @@ var copyCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Start copying")
-		log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 
 		clientSource, err := radix.DefaultClientFunc("tcp", args[0])
 		if err != nil {
