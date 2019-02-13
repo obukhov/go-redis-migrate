@@ -15,12 +15,6 @@ import (
 var pattern string
 var scanCount, report, exportRoutines, pushRoutines int
 
-type keyDump struct {
-	key   string
-	value string
-	ttl   int
-}
-
 var copyCmd = &cobra.Command{
 	Use:   "copy [sourceHost:port] [targetHost:port]",
 	Short: "Copy keys from source redis instance to destination by given pattern",
