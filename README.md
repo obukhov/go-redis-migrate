@@ -18,6 +18,10 @@ Other flags:
   --pushRoutines int     Number of parallel push goroutines (default 30)
 ```
 
+### Installation
+
+Download the binary for your platform from the [releases page](https://github.com/obukhov/go-redis-migrate/releases).
+
 ### General idea
 
 There are 3 main stages of copying keys:
