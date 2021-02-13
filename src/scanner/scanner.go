@@ -37,13 +37,11 @@ func NewScanner(client radix.Client, options RedisScannerOpts, reporter *reporte
 	}
 }
 
-func (s *RedisScanner) Start(wg *sync.WaitGroup) {
-	wg.Add(1)
-
+func (s *RedisScanner) Start() {
 	wgPull := new(sync.WaitGroup)
 	wgPull.Add(s.options.PullRoutineCount)
 
-	go s.scanRoutine(wg)
+	go s.scanRoutine()
 	for i := 0; i < s.options.PullRoutineCount; i++ {
 		go s.exportRoutine(wgPull)
 	}
@@ -52,11 +50,11 @@ func (s *RedisScanner) Start(wg *sync.WaitGroup) {
 	close(s.dumpChannel)
 }
 
-func (s *RedisScanner) GetDumpChannel() chan KeyDump {
+func (s *RedisScanner) GetDumpChannel() <-chan KeyDump {
 	return s.dumpChannel
 }
 
-func (s *RedisScanner) scanRoutine(wg *sync.WaitGroup) {
+func (s *RedisScanner) scanRoutine() {
 	var key string
 	scanOpts := radix.ScanOpts{
 		Command: "SCAN",
@@ -74,7 +72,6 @@ func (s *RedisScanner) scanRoutine(wg *sync.WaitGroup) {
 	}
 
 	close(s.keyChannel)
-	wg.Done()
 }
 
 func (s *RedisScanner) exportRoutine(wg *sync.WaitGroup) {

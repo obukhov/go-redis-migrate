@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-func NewRedisPusher(client radix.Client, dumpChannel chan scanner.KeyDump, reporter *reporter.Reporter) *RedisPusher {
+func NewRedisPusher(client radix.Client, dumpChannel <-chan scanner.KeyDump, reporter *reporter.Reporter) *RedisPusher {
 	return &RedisPusher{
 		client:      client,
 		reporter:    reporter,
@@ -19,7 +19,7 @@ func NewRedisPusher(client radix.Client, dumpChannel chan scanner.KeyDump, repor
 type RedisPusher struct {
 	client      radix.Client
 	reporter    *reporter.Reporter
-	dumpChannel chan scanner.KeyDump
+	dumpChannel <-chan scanner.KeyDump
 }
 
 func (p *RedisPusher) Start(wg *sync.WaitGroup, number int) {

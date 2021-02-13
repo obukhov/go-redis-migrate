@@ -51,7 +51,7 @@ var copyCmd = &cobra.Command{
 
 		statusReporter.Start(time.Second * time.Duration(report))
 		redisPusher.Start(waitingGroup, pushRoutines)
-		redisScanner.Start(waitingGroup)
+		redisScanner.Start()
 
 		waitingGroup.Wait()
 		statusReporter.Stop()
