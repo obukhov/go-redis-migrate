@@ -78,34 +78,28 @@ func (s *RedisScanner) scanRoutine(wg *sync.WaitGroup) {
 }
 
 func (s *RedisScanner) exportRoutine(wg *sync.WaitGroup) {
-	for {
-		key, more := <-s.keyChannel
+	for key := range s.keyChannel{
+		var value string
+		var ttl int
 
-		if more {
-			var value string
-			var ttl int
+		p := radix.Pipeline(
+			radix.Cmd(&ttl, "PTTL", key),
+			radix.Cmd(&value, "DUMP", key),
+		)
 
-			p := radix.Pipeline(
-				radix.Cmd(&ttl, "PTTL", key),
-				radix.Cmd(&value, "DUMP", key),
-			)
+		if err := s.client.Do(p); err != nil {
+			log.Fatal(err)
+		}
 
-			if err := s.client.Do(p); err != nil {
-				log.Fatal(err)
-			}
+		if ttl < 0 {
+			ttl = 0
+		}
 
-			if ttl < 0 {
-				ttl = 0
-			}
-
-			s.reporter.AddExportedCounter(1)
-			s.dumpChannel <- KeyDump{
-				Key:   key,
-				Ttl:   ttl,
-				Value: value,
-			}
-		} else {
-			break
+		s.reporter.AddExportedCounter(1)
+		s.dumpChannel <- KeyDump{
+			Key:   key,
+			Ttl:   ttl,
+			Value: value,
 		}
 	}
 

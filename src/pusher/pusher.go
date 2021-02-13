@@ -31,16 +31,11 @@ func (p *RedisPusher) Start(wg *sync.WaitGroup, number int) {
 }
 
 func (p *RedisPusher) pushRoutine(wg *sync.WaitGroup) {
-	for {
-		dump, more := <-p.dumpChannel
-		if more {
-			p.reporter.AddPushedCounter(1)
-			err := p.client.Do(radix.FlatCmd(nil, "RESTORE", dump.Key, dump.Ttl, dump.Value, "REPLACE"))
-			if err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			break
+	for dump := range p.dumpChannel {
+		p.reporter.AddPushedCounter(1)
+		err := p.client.Do(radix.FlatCmd(nil, "RESTORE", dump.Key, dump.Ttl, dump.Value, "REPLACE"))
+		if err != nil {
+			log.Fatal(err)
 		}
 	}
 
