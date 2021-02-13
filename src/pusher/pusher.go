@@ -8,21 +8,21 @@ import (
 	"sync"
 )
 
-func NewRedisPusher(client radix.Client, dumpChannel chan scanner.KeyDump, reporter *reporter.Reporter) *redisPusher {
-	return &redisPusher{
+func NewRedisPusher(client radix.Client, dumpChannel chan scanner.KeyDump, reporter *reporter.Reporter) *RedisPusher {
+	return &RedisPusher{
 		client:      client,
 		reporter:    reporter,
 		dumpChannel: dumpChannel,
 	}
 }
 
-type redisPusher struct {
+type RedisPusher struct {
 	client      radix.Client
 	reporter    *reporter.Reporter
 	dumpChannel chan scanner.KeyDump
 }
 
-func (p *redisPusher) Start(wg *sync.WaitGroup, number int) {
+func (p *RedisPusher) Start(wg *sync.WaitGroup, number int) {
 	wg.Add(number)
 	for i := 0; i < number; i++ {
 		go p.pushRoutine(wg)
@@ -30,7 +30,7 @@ func (p *redisPusher) Start(wg *sync.WaitGroup, number int) {
 
 }
 
-func (p *redisPusher) pushRoutine(wg *sync.WaitGroup) {
+func (p *RedisPusher) pushRoutine(wg *sync.WaitGroup) {
 	for {
 		dump, more := <-p.dumpChannel
 		if more {

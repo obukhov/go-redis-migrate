@@ -19,7 +19,7 @@ type RedisScannerOpts struct {
 	PullRoutineCount int
 }
 
-type redisScanner struct {
+type RedisScanner struct {
 	client      radix.Client
 	options     RedisScannerOpts
 	reporter    *reporter.Reporter
@@ -27,8 +27,8 @@ type redisScanner struct {
 	dumpChannel chan KeyDump
 }
 
-func CreateScanner(client radix.Client, options RedisScannerOpts, reporter *reporter.Reporter) *redisScanner {
-	return &redisScanner{
+func NewScanner(client radix.Client, options RedisScannerOpts, reporter *reporter.Reporter) *RedisScanner {
+	return &RedisScanner{
 		client:      client,
 		options:     options,
 		reporter:    reporter,
@@ -37,7 +37,7 @@ func CreateScanner(client radix.Client, options RedisScannerOpts, reporter *repo
 	}
 }
 
-func (s *redisScanner) Start(wg *sync.WaitGroup) {
+func (s *RedisScanner) Start(wg *sync.WaitGroup) {
 	wg.Add(1)
 
 	wgPull := new(sync.WaitGroup)
@@ -52,11 +52,11 @@ func (s *redisScanner) Start(wg *sync.WaitGroup) {
 	close(s.dumpChannel)
 }
 
-func (s *redisScanner) GetDumpChannel() chan KeyDump {
+func (s *RedisScanner) GetDumpChannel() chan KeyDump {
 	return s.dumpChannel
 }
 
-func (s *redisScanner) scanRoutine(wg *sync.WaitGroup) {
+func (s *RedisScanner) scanRoutine(wg *sync.WaitGroup) {
 	var key string
 	scanOpts := radix.ScanOpts{
 		Command: "SCAN",
@@ -77,7 +77,7 @@ func (s *redisScanner) scanRoutine(wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func (s *redisScanner) exportRoutine(wg *sync.WaitGroup) {
+func (s *RedisScanner) exportRoutine(wg *sync.WaitGroup) {
 	for {
 		key, more := <-s.keyChannel
 

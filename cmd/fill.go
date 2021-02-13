@@ -19,7 +19,7 @@ var fillCmd = &cobra.Command{
 	Use:   "fill [host:port]",
 	Short: "Create random keys in redis instance",
 	Args:  cobra.MinimumNArgs(1),
-	Long:  ``,
+	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Filling redis with random data")
 
