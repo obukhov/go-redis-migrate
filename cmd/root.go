@@ -29,7 +29,7 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "go-redis-migrate",
 	Short: "Application to migrate redis data from one instance to another",
-	Long:  ``,
+	Long:  "",
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	//	Run: func(cmd *cobra.Command, args []string) { },

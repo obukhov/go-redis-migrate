@@ -1,5 +1,7 @@
 module github.com/obukhov/go-redis-migrate
 
+go 1.15
+
 require (
 	github.com/mediocregopher/radix/v3 v3.2.0
 	github.com/mitchellh/go-homedir v1.1.0

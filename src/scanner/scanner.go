@@ -19,7 +19,7 @@ type RedisScannerOpts struct {
 	PullRoutineCount int
 }
 
-type redisScanner struct {
+type RedisScanner struct {
 	client      radix.Client
 	options     RedisScannerOpts
 	reporter    *reporter.Reporter
@@ -27,8 +27,8 @@ type redisScanner struct {
 	dumpChannel chan KeyDump
 }
 
-func CreateScanner(client radix.Client, options RedisScannerOpts, reporter *reporter.Reporter) *redisScanner {
-	return &redisScanner{
+func NewScanner(client radix.Client, options RedisScannerOpts, reporter *reporter.Reporter) *RedisScanner {
+	return &RedisScanner{
 		client:      client,
 		options:     options,
 		reporter:    reporter,
@@ -37,13 +37,11 @@ func CreateScanner(client radix.Client, options RedisScannerOpts, reporter *repo
 	}
 }
 
-func (s *redisScanner) Start(wg *sync.WaitGroup) {
-	wg.Add(1)
-
+func (s *RedisScanner) Start() {
 	wgPull := new(sync.WaitGroup)
 	wgPull.Add(s.options.PullRoutineCount)
 
-	go s.scanRoutine(wg)
+	go s.scanRoutine()
 	for i := 0; i < s.options.PullRoutineCount; i++ {
 		go s.exportRoutine(wgPull)
 	}
@@ -52,11 +50,11 @@ func (s *redisScanner) Start(wg *sync.WaitGroup) {
 	close(s.dumpChannel)
 }
 
-func (s *redisScanner) GetDumpChannel() chan KeyDump {
+func (s *RedisScanner) GetDumpChannel() <-chan KeyDump {
 	return s.dumpChannel
 }
 
-func (s *redisScanner) scanRoutine(wg *sync.WaitGroup) {
+func (s *RedisScanner) scanRoutine() {
 	var key string
 	scanOpts := radix.ScanOpts{
 		Command: "SCAN",
@@ -74,38 +72,31 @@ func (s *redisScanner) scanRoutine(wg *sync.WaitGroup) {
 	}
 
 	close(s.keyChannel)
-	wg.Done()
 }
 
-func (s *redisScanner) exportRoutine(wg *sync.WaitGroup) {
-	for {
-		key, more := <-s.keyChannel
+func (s *RedisScanner) exportRoutine(wg *sync.WaitGroup) {
+	for key := range s.keyChannel{
+		var value string
+		var ttl int
 
-		if more {
-			var value string
-			var ttl int
+		p := radix.Pipeline(
+			radix.Cmd(&ttl, "PTTL", key),
+			radix.Cmd(&value, "DUMP", key),
+		)
 
-			p := radix.Pipeline(
-				radix.Cmd(&ttl, "PTTL", key),
-				radix.Cmd(&value, "DUMP", key),
-			)
+		if err := s.client.Do(p); err != nil {
+			log.Fatal(err)
+		}
 
-			if err := s.client.Do(p); err != nil {
-				log.Fatal(err)
-			}
+		if ttl < 0 {
+			ttl = 0
+		}
 
-			if ttl < 0 {
-				ttl = 0
-			}
-
-			s.reporter.AddExportedCounter(1)
-			s.dumpChannel <- KeyDump{
-				Key:   key,
-				Ttl:   ttl,
-				Value: value,
-			}
-		} else {
-			break
+		s.reporter.AddExportedCounter(1)
+		s.dumpChannel <- KeyDump{
+			Key:   key,
+			Ttl:   ttl,
+			Value: value,
 		}
 	}
 

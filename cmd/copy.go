@@ -18,7 +18,7 @@ var scanCount, report, exportRoutines, pushRoutines int
 var copyCmd = &cobra.Command{
 	Use:   "copy [sourceHost:port] [targetHost:port]",
 	Short: "Copy keys from source redis instance to destination by given pattern",
-	Long:  ``,
+	Long:  "",
 	Args:  cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Start copying")
@@ -35,7 +35,7 @@ var copyCmd = &cobra.Command{
 
 		statusReporter := reporter.NewReporter()
 
-		redisScanner := scanner.CreateScanner(
+		redisScanner := scanner.NewScanner(
 			clientSource,
 			scanner.RedisScannerOpts{
 				Pattern:          pattern,
@@ -51,7 +51,7 @@ var copyCmd = &cobra.Command{
 
 		statusReporter.Start(time.Second * time.Duration(report))
 		redisPusher.Start(waitingGroup, pushRoutines)
-		redisScanner.Start(waitingGroup)
+		redisScanner.Start()
 
 		waitingGroup.Wait()
 		statusReporter.Stop()
