@@ -75,7 +75,7 @@ func (s *RedisScanner) scanRoutine() {
 }
 
 func (s *RedisScanner) exportRoutine(wg *sync.WaitGroup) {
-	for key := range s.keyChannel{
+	for key := range s.keyChannel {
 		var value string
 		var ttl int
 
