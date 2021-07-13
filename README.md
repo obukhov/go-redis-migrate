@@ -60,3 +60,7 @@ Keys to copy:    367610 keys.
 | #1 |                   8m57.98s |                               58.78s |
 | #2 |                   8m44.98s |                               55.35s |
 | #3 |                   8m58.07s |                               57.25s |
+
+
+### See also
+- An article about how it works: https://medium.com/amboss/copy-redis-keys-in-minutes-with-golang-3c06f3cd3af8
