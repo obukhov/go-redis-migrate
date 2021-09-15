@@ -5,9 +5,10 @@ Script to copy data by keys pattern from one redis instance to another.
 ### Usage
 
 ```bash
-go-redis-migrate copy [sourceHost:port] [targetHost:port] --pattern="prefix:*"
+go-redis-migrate copy <source> <destination> --pattern="prefix:*"
 ```
 
+*Source*, *destination* - can be provided as just `<host>:<port>` or in Redis URL format: `redis://[:<password>@]<host>:<port>[/<dbIndex>]` 
 *Pattern* - can be glob-style pattern supported by [Redis SCAN](https://redis.io/commands/scan) command.
 
 Other flags:
