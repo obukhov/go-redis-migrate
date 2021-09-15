@@ -16,9 +16,9 @@ var pattern string
 var scanCount, report, exportRoutines, pushRoutines int
 
 var copyCmd = &cobra.Command{
-	Use:   "copy [sourceHost:port] [targetHost:port]",
+	Use:   "copy <source> <destination>",
 	Short: "Copy keys from source redis instance to destination by given pattern",
-	Long:  "",
+	Long:  "Copy keys from source redis instance to destination by given pattern <source> and <destination> can be provided as just `<host>:<port>` or in Redis URL format: `redis://[:<password>@]<host>:<port>[/<dbIndex>]",
 	Args:  cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Start copying")
