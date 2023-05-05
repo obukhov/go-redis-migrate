@@ -2,6 +2,8 @@
 
 Script to copy data by keys pattern from one redis instance to another.
 
+["Copy 1 Million Redis Keys in 2 Minutes with Golang" blog post](https://blog.dclg.net/copy-1-million-redis-keys-in-2-minutes-with-golang)
+
 ### Usage
 
 ```bash
@@ -62,6 +64,3 @@ Keys to copy:    367610 keys.
 | #2 |                   8m44.98s |                               55.35s |
 | #3 |                   8m58.07s |                               57.25s |
 
-
-### See also
-- An article about how it works: https://medium.com/amboss/copy-redis-keys-in-minutes-with-golang-3c06f3cd3af8
